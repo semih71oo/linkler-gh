@@ -1,0 +1,8 @@
+name = "linkler-gh"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "db-yazilim"
+database_id = "fdf383b2-4982-495d-af8f-e8e1de1c5690"
