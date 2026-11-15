@@ -212,7 +212,9 @@ tailwind.config = {
           <button onclick="toggleQR()" class="bg-white border border-zinc-300 text-zinc-700 px-3 py-2 rounded-lg text-xs font-medium">QR</button>
         </div>
         <div id="qrBox" class="hidden mb-3 p-3 bg-white rounded-xl border border-zinc-200 flex flex-col items-center">
-          <img id="qrImg" src="" alt="QR" class="w-28 h-28 mb-1">
+          <img id="qrImg" src="" alt="QR Kod" class="w-40 h-40 mb-3">
+          <button id="downloadQrBtn" type="button" onclick="downloadQR()" class="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 text-sm font-semibold">PNG olarak indir</button>
+          <p id="qrDownloadError" class="hidden mt-2 text-xs text-red-600" role="alert"></p>
         </div>
         <div class="rounded-xl bg-white border border-brand-200 p-3 text-xs text-zinc-600 space-y-1">
           <div class="font-bold text-zinc-800">🔒 Gizli İstatistik Anahtarınız:</div>
@@ -287,12 +289,42 @@ tailwind.config = {
         currentCode = d.short_code; currentSecret = d.secret_key;
         document.getElementById('shortResultUrl').value = d.short_url;
         document.getElementById('secretKeyText').textContent = d.secret_key;
-        document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(d.short_url);
+        document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&format=png&data=' + encodeURIComponent(d.short_url);
+        document.getElementById('qrDownloadError').classList.add('hidden');
         document.getElementById('resultCard').classList.remove('hidden');
       } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
       finally { btn.disabled = false; btn.textContent = 'Kısalt'; }
     }
     function toggleQR() { document.getElementById('qrBox').classList.toggle('hidden'); }
+    async function downloadQR() {
+      var img = document.getElementById('qrImg');
+      var btn = document.getElementById('downloadQrBtn');
+      var err = document.getElementById('qrDownloadError');
+      err.classList.add('hidden');
+      if (!img.src) { err.textContent = 'Önce bir kısa link oluşturun.'; err.classList.remove('hidden'); return; }
+      btn.disabled = true;
+      btn.textContent = 'İndiriliyor...';
+      try {
+        var response = await fetch(img.src);
+        if (!response.ok) throw new Error('QR kod alınamadı.');
+        var blob = await response.blob();
+        if (!blob.type.includes('image')) throw new Error('Sunucudan geçerli bir görsel alınamadı.');
+        var objectUrl = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = 'qr-' + (currentCode || 'kod') + '.png';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
+      } catch (e) {
+        err.textContent = 'İndirme başarısız oldu. QR kod görseline basılı tutup kaydetmeyi deneyin.';
+        err.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'PNG olarak indir';
+      }
+    }
     function copyToClipboard(id) { var el = document.getElementById(id); navigator.clipboard.writeText(el.value); alert('Kopyalandı!'); }
     function goToStatsFromKey() { switchTab('stats'); document.getElementById('statsCodeInput').value = currentCode; document.getElementById('statsKeyInput').value = currentSecret; fetchStats(); }
     async function fetchStats() {
